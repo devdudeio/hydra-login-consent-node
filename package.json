@@ -1,5 +1,5 @@
 {
-  "name": "hydra-login-consent-logout",
+  "name": "hydra-veruslogin-consent-logout",
   "version": "0.0.0",
   "bin": {
     "hydra-login-consent-logout": "lib/app.js"
