@@ -11,20 +11,6 @@ const router = express.Router()
 
 router.get('/', csrfProtection, (req, res, next) => {
 
-    verusClient['vrsctest'].post('', {
-        jsonrpc: '2.0',
-        method: 'signmessage',
-        params: [
-            'consentnode@',
-            'Hello World'
-        ]
-    }, {
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    }).then(console.log).catch(console.log);
-
-
     // Parses the URL query
     const query = url.parse(req.url, true).query
 
@@ -60,6 +46,29 @@ router.get('/', csrfProtection, (req, res, next) => {
             // If authentication can't be skipped we MUST show the login UI.
             //open verus wallet heree
             //      console.log("mybody", body)
+
+            const toSign = {
+                chain_id: 'vrsctest',
+                signing_id 'consentnode@',
+                signature: '',
+                timestamp: Date.now(),
+                challenge,
+                redirect_url: body.redirect_to,
+                on_behalf_of: '',
+            }
+
+            verusClient['vrsctest'].post('', {
+                jsonrpc: '2.0',
+                method: 'signmessage',
+                params: [
+                    'consentnode@',
+                    'Hello World'
+                ]
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).then(console.log).catch(console.log);
 
             res.render('login', {
                 csrfToken: req.csrfToken(),
