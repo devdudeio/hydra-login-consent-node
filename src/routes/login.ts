@@ -49,10 +49,11 @@ router.get('/', csrfProtection, (req, res, next) => {
 
             const toSign = {
                 chain_id: 'vrsctest',
-                signing_id 'consentnode@',
+                signing_id: 'consent-node@',
                 signature: '',
                 timestamp: Date.now(),
                 challenge,
+                // @ts-ignore
                 redirect_url: body.redirect_to,
                 on_behalf_of: '',
             }
