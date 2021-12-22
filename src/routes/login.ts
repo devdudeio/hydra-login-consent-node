@@ -4,13 +4,16 @@ import urljoin from 'url-join'
 import csrf from 'csurf'
 import {hydraAdmin, verusClient} from '../config'
 import {oidcConformityMaybeFakeAcr} from './stub/oidc-cert'
+import {WALLET_VDXF_KEY, LOGIN_CONSENT_REQUEST_VDXF_KEY, LOGIN_CONSENT_REQUEST_SIG_VDXF_KEY, LOGIN_CONSENT_CLIENT_VDXF_KEY, LOGIN_CONSENT_REDIRECT_VDXF_KEY, LOGIN_CONSENT_CHALLENGE_VDXF_KEY, LoginConsentResponse, VerusIDSignature, LoginConsentDecision, LoginConsentRequest} from 'verus-typescript-primitives';
+import base64url from 'base64url'
+import { Challenge } from 'verus-typescript-primitives/dist/vdxf/classes/Challenge'
+
 
 // Sets up csrf protection
 const csrfProtection = csrf({cookie: true})
 const router = express.Router()
 
 router.get('/', csrfProtection, (req, res, next) => {
-
     // Parses the URL query
     const query = url.parse(req.url, true).query
 
@@ -23,7 +26,7 @@ router.get('/', csrfProtection, (req, res, next) => {
 
     hydraAdmin
         .getLoginRequest(challenge)
-        .then(({data: body}) => {
+        .then(async ({data: body}) => {
             // If hydra was already able to authenticate the user, skip will be true and we do not need to re-authenticate
             // the user.
             if (body.skip) {
@@ -47,36 +50,39 @@ router.get('/', csrfProtection, (req, res, next) => {
             //open verus wallet heree
             //      console.log("mybody", body)
 
-            const toSign = {
-                chain_id: 'vrsctest',
-                signing_id: 'consent-node@',
-                signature: '',
-                timestamp: Date.now(),
-                challenge,
-                // @ts-ignore
-                redirect_url: body.redirect_to,
-                on_behalf_of: '',
-            }
-
-            verusClient['vrsctest'].post('', {
+            const {signature = ''} = await verusClient['vrsctest'].post('', {
                 jsonrpc: '2.0',
                 method: 'signmessage',
                 params: [
-                    'consentnode@',
-                    'Hello World'
+                    process.env.CONSENT_NODE_VERUS_IDENTITY,
+                    body.challenge
                 ]
             }, {
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'text/plain',
                 },
-            }).then(console.log).catch(console.log);
+            }).then(res => res.data.result).catch(err =>  err.response.data.error);
 
-            res.render('login', {
-                csrfToken: req.csrfToken(),
-                challenge: challenge,
-                action: urljoin(process.env.BASE_URL || '', '/login'),
-                hint: body.oidc_context?.login_hint || ''
-            })
+
+            const {challenge: uuid, ...bodyRest} = body;
+            // @ts-ignore
+            const loginConsentChallenge = new Challenge({uuid, ...bodyRest});
+            
+            const verusIdSignature = new VerusIDSignature({signature: ""}, LOGIN_CONSENT_REQUEST_SIG_VDXF_KEY);
+
+
+            const loginConsentRequest = new LoginConsentRequest({
+                chain_id: "vrsctest",
+                signing_id: process.env.CONSENT_NODE_VERUS_IDENTITY || '',
+                signature: verusIdSignature,
+                challenge: loginConsentChallenge,
+            });
+
+            const walletRedirectUrl = `${WALLET_VDXF_KEY.vdxfid}://x-callback-url/${LOGIN_CONSENT_REQUEST_VDXF_KEY.vdxfid}/?${LOGIN_CONSENT_REQUEST_VDXF_KEY.vdxfid}=${base64url.encode(JSON.stringify(loginConsentRequest))}`
+                    
+
+           console.log(walletRedirectUrl)
+           res.redirect(String(walletRedirectUrl))
         })
         // This will handle any error that happens when making HTTP calls to hydra
         .catch(next)
@@ -169,3 +175,5 @@ router.post('/', csrfProtection, (req, res, next) => {
 })
 
 export default router
+
+
