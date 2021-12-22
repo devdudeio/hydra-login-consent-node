@@ -98,7 +98,7 @@ router.get('/', csrfProtection, (req, res, next) => {
             }, LOGIN_CONSENT_REQUEST_SIG_VDXF_KEY);
 
             const loginConsentRequest = new LoginConsentRequest({
-                chain_id: "vrsctest",
+                chain_id: "VRSCTEST",
                 signing_id: process.env.CONSENT_NODE_VERUS_IDENTITY || '',
                 signature: verusIdSignature,
                 challenge: loginConsentChallenge,
@@ -107,7 +107,7 @@ router.get('/', csrfProtection, (req, res, next) => {
 
 
             // console.log(util.inspect(body, false, null, true /* enable colors */))
-            // console.log(util.inspect(loginConsentChallenge, false, null, true /* enable colors */))
+            console.log(util.inspect(loginConsentRequest, false, null, true /* enable colors */))
 
             const walletRedirectUrl = `${WALLET_VDXF_KEY.vdxfid}://x-callback-url/${LOGIN_CONSENT_REQUEST_VDXF_KEY.vdxfid}/?${LOGIN_CONSENT_REQUEST_VDXF_KEY.vdxfid}=${base64url.encode(loginConsentRequest.toString())}`
                     
