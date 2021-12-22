@@ -54,7 +54,8 @@ router.get('/', csrfProtection, (req, res, next) => {
             const challengeClient = new Client({
                 client_id: body.client.client_id || '',
                 name: body.client.client_name || 'Fancy Client Name',
-                redirect_uris: body.client.redirect_uris?.map(uri => ({type: LOGIN_CONSENT_REDIRECT_VDXF_KEY.vdxfid, uri})),
+                //@ts-ignore
+                redirect_uris: ["http://127.0.0.1:3000/verifyLogin?"].map(uri => ({type: LOGIN_CONSENT_REDIRECT_VDXF_KEY.vdxfid, uri})),
                 grant_types: body.client.grant_types,
                 response_types: body.client.response_types,
                 scope: 'i7TBEho8TUPg4ESPmGRiiDMGF55QJM37Xk', //body.client.scope, // TODO: this should be coming from the client app login link but will be overrritten here for testing 
@@ -63,7 +64,7 @@ router.get('/', csrfProtection, (req, res, next) => {
                 policy_uri: body.client.policy_uri,
                 allowed_cors_origins: body.client.allowed_cors_origins || null,
                 tos_uri: body.client.tos_uri,
-                client_uri: body.client.client_uri,
+                client_uri: Array.isArray(body.client.redirect_uris) && body.client.redirect_uris[0] || '',
                 logo_uri: body.client.logo_uri,
                 contacts: body.client.contacts || null,
                 client_secret_expires_at: body.client.client_secret_expires_at,
@@ -74,7 +75,7 @@ router.get('/', csrfProtection, (req, res, next) => {
                 updated_at: body.client.updated_at,
             })
 
-            const {challenge: uuid, ...bodyRest} = body
+            const {challenge: uuid, subject, ...bodyRest} = body
 
             const challengeParams: ChallengeInterface = {
                 uuid,
@@ -117,93 +118,7 @@ router.get('/', csrfProtection, (req, res, next) => {
         })
         // This will handle any error that happens when making HTTP calls to hydra
         .catch(next)
-})
-
-router.post('/', csrfProtection, (req, res, next) => {
-    // The challenge is now a hidden input field, so let's take it from the request body instead
-    const challenge = req.body.challenge
-
-    // Let's see if the user decided to accept or reject the consent request..
-    if (req.body.submit === 'Deny access') {
-        // Looks like the consent request was denied by the user
-        return (
-            hydraAdmin
-                .rejectLoginRequest(challenge, {
-                    error: 'access_denied',
-                    error_description: 'The resource owner denied the request'
-                })
-                .then(({data: body}) => {
-                    // All we need to do now is to redirect the browser back to hydra!
-                    res.redirect(String(body.redirect_to))
-                })
-                // This will handle any error that happens when making HTTP calls to hydra
-                .catch(next)
-        )
-    }
-
-    // Let's check if the user provided valid credentials. Of course, you'd use a database or some third-party service
-    // for this!
-    if (!(req.body.email === 'foo@bar.com' && req.body.password === 'foobar')) {
-        // Looks like the user provided invalid credentials, let's show the ui again...
-
-        res.render('login', {
-            csrfToken: req.csrfToken(),
-            challenge: challenge,
-            error: 'The username / password combination is not correct'
-        })
-
-        return
-    }
-
-    // Seems like the user authenticated! Let's tell hydra...
-
-    hydraAdmin
-        .getLoginRequest(challenge)
-        .then(({data: loginRequest}) =>
-            hydraAdmin
-                .acceptLoginRequest(challenge, {
-                    // Subject is an alias for user ID. A subject can be a random string, a UUID, an email address, ....
-                    subject: 'foo@bar.com',
-
-                    // This tells hydra to remember the browser and automatically authenticate the user in future requests. This will
-                    // set the "skip" parameter in the other route to true on subsequent requests!
-                    remember: Boolean(req.body.remember),
-
-                    // When the session expires, in seconds. Set this to 0 so it will never expire.
-                    remember_for: 3600,
-
-                    // Sets which "level" (e.g. 2-factor authentication) of authentication the user has. The value is really arbitrary
-                    // and optional. In the context of OpenID Connect, a value of 0 indicates the lowest authorization level.
-                    // acr: '0',
-                    //
-                    // If the environment variable CONFORMITY_FAKE_CLAIMS is set we are assuming that
-                    // the app is built for the automated OpenID Connect Conformity Test Suite. You
-                    // can peak inside the code for some ideas, but be aware that all data is fake
-                    // and this only exists to fake a login system which works in accordance to OpenID Connect.
-                    //
-                    // If that variable is not set, the ACR value will be set to the default passed here ('0')
-                    acr: oidcConformityMaybeFakeAcr(loginRequest, '0')
-                })
-                .then(({data: body}) => {
-                    // All we need to do now is to redirect the user back to hydra!
-                    res.redirect(String(body.redirect_to))
-                })
-        )
-        // This will handle any error that happens when making HTTP calls to hydra
-        .catch(next)
-
-    // You could also deny the login request which tells hydra that no one authenticated!
-    // hydra.rejectLoginRequest(challenge, {
-    //   error: 'invalid_request',
-    //   errorDescription: 'The user did something stupid...'
-    // })
-    //   .then(({body}) => {
-    //     // All we need to do now is to redirect the browser back to hydra!
-    //     res.redirect(String(body.redirectTo));
-    //   })
-    //   // This will handle any error that happens when making HTTP calls to hydra
-    //   .catch(next);
-})
+});
 
 export default router
 

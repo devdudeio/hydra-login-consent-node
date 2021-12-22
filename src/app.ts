@@ -6,6 +6,7 @@ import bodyParser from 'body-parser'
 
 import routes from './routes'
 import login from './routes/login'
+import verifyLogin from './routes/verifyLogin'
 import logout from './routes/logout'
 import consent from './routes/consent'
 
@@ -25,6 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/', routes)
 app.use('/login', login)
+app.use('/verifyLogin', verifyLogin)
 app.use('/logout', logout)
 app.use('/consent', consent)
 
