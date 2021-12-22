@@ -50,12 +50,17 @@ router.get('/', csrfProtection, (req, res, next) => {
             //open verus wallet heree
             //      console.log("mybody", body)
 
+
+            const {challenge: uuid, ...bodyRest} = body;
+            // @ts-ignore
+            const loginConsentChallenge = new Challenge({uuid, ...bodyRest});
+
             const {signature = ''} = await verusClient['vrsctest'].post('', {
                 jsonrpc: '2.0',
                 method: 'signmessage',
                 params: [
                     process.env.CONSENT_NODE_VERUS_IDENTITY,
-                    body.challenge
+                    loginConsentChallenge.toString()
                 ]
             }, {
                 headers: {
@@ -63,12 +68,10 @@ router.get('/', csrfProtection, (req, res, next) => {
                 },
             }).then(res => res.data.result).catch(err =>  err.response.data.error);
 
-
-            const {challenge: uuid, ...bodyRest} = body;
-            // @ts-ignore
-            const loginConsentChallenge = new Challenge({uuid, ...bodyRest});
+            console.log("signature", signature)
             
-            const verusIdSignature = new VerusIDSignature({signature: ""}, LOGIN_CONSENT_REQUEST_SIG_VDXF_KEY);
+            const verusIdSignature = new VerusIDSignature({signature
+            }, LOGIN_CONSENT_REQUEST_SIG_VDXF_KEY);
 
 
             const loginConsentRequest = new LoginConsentRequest({
@@ -81,7 +84,7 @@ router.get('/', csrfProtection, (req, res, next) => {
             const walletRedirectUrl = `${WALLET_VDXF_KEY.vdxfid}://x-callback-url/${LOGIN_CONSENT_REQUEST_VDXF_KEY.vdxfid}/?${LOGIN_CONSENT_REQUEST_VDXF_KEY.vdxfid}=${base64url.encode(JSON.stringify(loginConsentRequest))}`
                     
 
-           console.log(walletRedirectUrl)
+           console.log("link", walletRedirectUrl)
            res.redirect(String(walletRedirectUrl))
         })
         // This will handle any error that happens when making HTTP calls to hydra
