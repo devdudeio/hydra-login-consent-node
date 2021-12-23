@@ -105,15 +105,9 @@ router.get('/', csrfProtection, (req, res, next) => {
                 challenge: loginConsentChallenge,
             });
 
-
-
-            // console.log(util.inspect(body, false, null, true /* enable colors */))
-            console.log(util.inspect(loginConsentRequest, false, null, true /* enable colors */))
-
             const walletRedirectUrl = `${WALLET_VDXF_KEY.vdxfid}://x-callback-url/${LOGIN_CONSENT_REQUEST_VDXF_KEY.vdxfid}/?${LOGIN_CONSENT_REQUEST_VDXF_KEY.vdxfid}=${base64url.encode(loginConsentRequest.toString())}`
-                    
-            console.log("signature", signature)
-            console.log("link", walletRedirectUrl)
+            
+            // TOOD: render page that shows infos about to download the wallet in case there is no wallet installed
             res.redirect(String(walletRedirectUrl))
         })
         // This will handle any error that happens when making HTTP calls to hydra

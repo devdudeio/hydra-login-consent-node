@@ -30,7 +30,6 @@ router.get('/', csrfProtection, async (req, res, next) => {
     .then(res => res.data.result)
     .catch(() => false);
 
-
     // Let's see if the user decided to accept or reject the consent request..
     if (!isValid) {
         // Looks like the consent request was denied by the user
@@ -80,8 +79,6 @@ router.get('/', csrfProtection, async (req, res, next) => {
                 })
                 .then(({data: body}) => {
                     // All we need to do now is to redirect the user back to hydra!
-                    console.log("REDIRECT TO HYDRA LOGIN VERIFY DONE")
-                    console.log(body.redirect_to)
                     res.redirect(String(body.redirect_to))
                 })
         )

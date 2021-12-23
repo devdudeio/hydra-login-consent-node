@@ -2,17 +2,19 @@ import express from 'express'
 import url from 'url'
 import urljoin from 'url-join'
 import csrf from 'csurf'
-import { hydraAdmin } from '../config'
+import { hydraAdmin, verusClient } from '../config'
 import { oidcConformityMaybeFakeSession } from './stub/oidc-cert'
 import { ConsentRequestSession } from '@oryd/hydra-client'
 
 // Sets up csrf protection
 const csrfProtection = csrf({ cookie: true })
 const router = express.Router()
+const skipUI = true;
 
 router.get('/', csrfProtection, (req, res, next) => {
   // Parses the URL query
   const query = url.parse(req.url, true).query
+  console.log(req)
 
   // The challenge is used to fetch information about the consent request from ORY hydraAdmin.
   const challenge = String(query.consent_challenge)
@@ -27,9 +29,17 @@ router.get('/', csrfProtection, (req, res, next) => {
   hydraAdmin
     .getConsentRequest(challenge)
     // This will be called if the HTTP request was successful
-    .then(({ data: body }) => {
+    .then(async ({ data: body }) => {
+      console.log(body)
       // If a user has granted this application the requested scope, hydra will tell us to not show the UI.
-      if (body.skip) {
+      if (skipUI) { //TODO: skip has to be set by the wallet to true
+        
+        const signing_id = await verusClient['vrsctest'].post('', {
+          jsonrpc: '2.0',
+          method: 'getidentity',
+          params: [body.subject]
+      }).then(res => res.data.result).catch(() =>  null);
+        console.log(body.subject, signing_id)
         // You can apply logic here, for example grant another scope, or do whatever...
         // ...
 
@@ -49,7 +59,10 @@ router.get('/', csrfProtection, (req, res, next) => {
               // unless you limit who can introspect tokens.
               // accessToken: { foo: 'bar' },
               // This data will be available in the ID token.
-              // idToken: { baz: 'bar' },
+              id_token: {
+                chain_id: 'vrsctest',
+                signing_id_name: `${signing_id.identity.name}@`
+              },
             }
           })
           .then(({ data: body }) => {
@@ -75,7 +88,9 @@ router.get('/', csrfProtection, (req, res, next) => {
   // The consent request has now either been accepted automatically or rendered.
 })
 
-router.post('/', csrfProtection, (req, res, next) => {
+router.post('/', csrfProtection, async (req, res, next) => {
+  console.log(req.body)
+  console.log(req.query)
   // The challenge is now a hidden input field, so let's take it from the request body instead
   const challenge = req.body.challenge
 
@@ -103,17 +118,20 @@ router.post('/', csrfProtection, (req, res, next) => {
     grantScope = [grantScope]
   }
 
+
+
+
   // The session allows us to set session data for id and access tokens
   let session: ConsentRequestSession = {
     // This data will be available when introspecting the token. Try to avoid sensitive information here,
     // unless you limit who can introspect tokens.
     access_token: {
-      // foo: 'bar'
+      //foo: 'bar'
     },
 
     // This data will be available in the ID token.
     id_token: {
-      // baz: 'bar'
+       // hello: "world"
     }
   }
 
