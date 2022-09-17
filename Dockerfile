@@ -1,4 +1,4 @@
-FROM node:14.15-alpine3.12
+FROM node:16-alpine
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
@@ -7,7 +7,7 @@ RUN adduser -S ory -D -u 10000 -s /bin/nologin
 
 COPY package.json package.json
 COPY package-lock.json package-lock.json
-RUN npm ci --silent
+RUN npm ci
 
 COPY . /usr/src/app
 
